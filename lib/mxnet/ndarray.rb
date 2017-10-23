@@ -71,6 +71,33 @@ module MXNet
       end
     end
 
+    # Set self[key] to value.
+    #
+    # @param [nil, Integer, Range, or Array] key  The indexing key.
+    # @param [scalar, NDArray, or Array] value  The value to set.
+    # @return the given value
+    def []=(key, value)
+      case key
+      when Integer
+        self[key][nil] = value
+      when Range
+        # TODO: Support step range
+        self[key][nil] = value
+      when Array
+      when nil
+        case value
+        when NDArray
+          value.copyto(self) if value.handle != self.handle
+        when Integer, Float
+          _set_value(value, self)
+        when Array
+          _sync_copyfrom(value)
+        else
+          raise ArgumentError, "NDArray does not support assignment with #{value} of type #{value.class}"
+        end
+      end
+    end
+
     def ndim
       shape.length
     end
@@ -136,5 +163,47 @@ module MXNet
         end
       end
     end
+  end
+
+  def self.NDArray(source_array, ctx=nil, dtype=:float32, **kwargs)
+    case source_array
+    when NDArray
+      shape = source_array.shape
+    else
+      dtype ||= :float32
+      source_array = source_array.to_ary
+      shape, = discover_dimensions(source_array)
+    end
+    array = NDArray.empty(shape)
+    array[0..-1] = source_array
+    array
+  end
+
+  private
+
+  MAXDIMS = 32  # This value is from NPY_MAXDIMS
+
+  def self.discover_dimensions(ary, maxndim=MAXDIMS)
+    return [[], 0] if maxndim == 0 || !ary.is_a?(Array)
+
+    shape = [ary.length]
+    return [shape, 1] if ary.length == 0 || maxndim == 1
+
+    sub_shape, maxndim_m1 = discover_dimensions(ary[0], maxndim - 1)
+    shape.concat(sub_shape)
+    maxndim = maxndim_m1 + 1
+
+    (1 ... ary.length).each do |i|
+      sub_shape, maxndim_m1 = discover_dimensions(ary[i], maxndim - 1)
+      (0 ... maxndim_m1).each do |j|
+        unless sub_shape[j] == shape[j+1]
+          maxndim_m1 = j
+          break
+        end
+      end
+    end
+    raise ArgumentError, "Array has inconsistent dimensions" if maxndim_m1 + 1 < maxndim
+
+    [shape, maxndim]
   end
 end

@@ -360,7 +360,7 @@ module MXNet
       end
       # attr[:__storage_type__] = str(_STORAGE_TYPE_STR_TO_ID[stype] if stype
       kwargs.each do |k, v|
-        if k.start_with?('__') && k.end_with?('__')
+        if k.to_s.start_with?('__') && k.to_s.end_with?('__')
           attr[k] = v
         else
           raise ArgumentError, "Attribute name=#{k} is not supported." +

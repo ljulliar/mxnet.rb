@@ -25,10 +25,12 @@ module MXNet
   require 'mxnet/symbol/operation_delegator'
   require 'mxnet/random'
   require 'mxnet/utils'
+  require 'mxnet/hash_utils'
   require 'mxnet/op_info'
   require 'mxnet.so'
   require 'mxnet/ndarray/operations'
   require 'mxnet/symbol/operations'
+  require 'mxnet/registry'
   require 'mxnet/lr_scheduler'
   require 'mxnet/optimizer'
 end
